@@ -161,24 +161,45 @@ async function loginWithProvider({ accountId, email, password, provider, ip }) {
     page = await context.newPage();
     await page.goto(config.loginUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
+    // NOTE: ":visible" is critical here. Providers like Google render hidden
+    // decoy fields (e.g. <input name="hiddenPassword" aria-hidden="true">)
+    // that match generic selectors but can never be filled.
     const emailInput = page.locator(
-      'input[type="email"], input[name*="email" i], input[id*="email" i], input[autocomplete="username"], input[name="username"], input[name*="user" i]'
+      'input[type="email"]:visible, input[name*="email" i]:visible, input[id*="email" i]:visible, input[autocomplete="username"]:visible, input[name="username"]:visible, input[name*="user" i]:visible'
     ).first();
     const passwordInput = page.locator(
-      'input[type="password"], input[name*="pass" i], input[id*="pass" i]'
+      'input[type="password"]:visible, input[name*="pass" i]:visible, input[id*="pass" i]:visible'
     ).first();
+
+    let advancedToNextStep = false;
 
     if ((await emailInput.count()) > 0) {
       await emailInput.fill(email);
-      await emailInput.press('Tab');
+
+      // Multi-step providers (Google/Microsoft) require clicking "Next"
+      // after the email before the password field is rendered.
+      const nextButton = page.locator(
+        '#identifierNext button, button:has-text("Next"), button:has-text("Sign in"), button:has-text("Continue"), input[type="submit"], button[type="submit"]'
+      ).first();
+
+      if ((await nextButton.count()) > 0) {
+        await nextButton.click({ timeout: 5000 }).catch(() => undefined);
+        advancedToNextStep = true;
+      } else {
+        await emailInput.press('Enter').catch(() => undefined);
+        advancedToNextStep = true;
+      }
     }
 
-    await page.waitForTimeout(800);
+    // Wait for the real (visible) password field to appear on multi-step flows.
+    if (advancedToNextStep && (await passwordInput.count()) === 0) {
+      await passwordInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+    }
 
     if ((await passwordInput.count()) > 0) {
       await passwordInput.fill(password);
       await passwordInput.press('Enter');
-    } else {
+    } else if (!advancedToNextStep) {
       const submitButton = page.locator('button:has-text("Next"), button:has-text("Sign in"), input[type="submit"], button[type="submit"]').first();
       if ((await submitButton.count()) > 0) {
         await submitButton.click();
@@ -194,7 +215,7 @@ async function loginWithProvider({ accountId, email, password, provider, ip }) {
       /2fa|mfa|otp|verification|challenge|authenticator/i.test(pageUrl);
 
     const otpFieldExists =
-      (await page.locator('input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="code" i], input[name*="verification" i], input[inputmode="numeric"]').count()) > 0;
+      (await page.locator('input[autocomplete="one-time-code"]:visible, input[name*="otp" i]:visible, input[name*="code" i]:visible, input[name*="verification" i]:visible, input[inputmode="numeric"]:visible').count()) > 0;
 
     if (hasTwoFactorSignal || otpFieldExists) {
       console.log(`[${accountId}] Detected 2FA challenge. Saving active session for verification.`);
@@ -276,7 +297,7 @@ async function verifyTwoFactor(accountId, code) {
 
   try {
     const otpInput = session.page.locator(
-      'input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="code" i], input[name*="verification" i], input[inputmode="numeric"]'
+      'input[autocomplete="one-time-code"]:visible, input[name*="otp" i]:visible, input[name*="code" i]:visible, input[name*="verification" i]:visible, input[inputmode="numeric"]:visible'
     ).first();
 
     if ((await otpInput.count()) > 0) {

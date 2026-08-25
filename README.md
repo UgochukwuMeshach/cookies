@@ -74,7 +74,7 @@ lives at `server/Dockerfile` and is based on the official Playwright image
 `mcr.microsoft.com/playwright:v1.49.1-noble`, which matches the exact
 Playwright version installed by this project (`1.49.1`).
 
-**Render settings (dashboard):**
+**Render settings (dashboard):*
 
 - **Runtime:** Docker
 - **Root Directory:** `server` (Render builds from `server/Dockerfile`)

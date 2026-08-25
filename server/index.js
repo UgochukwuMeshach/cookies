@@ -9,7 +9,38 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// CORS: allow the frontend origin(s) configured via CLIENT_URL.
+// In production, set CLIENT_URL to the deployed Vercel frontend URL,
+// e.g. CLIENT_URL=https://your-app.vercel.app
+// Multiple origins can be provided as a comma-separated list.
+const clientUrls = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((url) => url.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow requests with no origin (e.g. server-to-server, curl, health checks)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // If CLIENT_URL is not configured, fall back to allowing all origins
+    // (same behavior as the previous app.use(cors()) for local development).
+    if (clientUrls.length === 0) {
+      return callback(null, true);
+    }
+
+    if (clientUrls.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 
 app.use('/api/auth', authRoutes);

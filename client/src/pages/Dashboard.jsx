@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const providerLabels = {
   gmail: 'Gmail',
@@ -17,7 +17,7 @@ export default function Dashboard() {
   async function fetchEntries() {
     try {
       setLoading(true);
-      const response = await axios.get('/api/auth/credentials');
+      const response = await api.get('/api/auth/credentials');
       setEntries(response.data);
     } catch (error) {
       setMessage(error.response?.data?.message || 'Unable to load credentials.');
@@ -33,7 +33,7 @@ export default function Dashboard() {
   async function launchSession(accountId) {
     try {
       setMessage('Launching cookie-based browser session...');
-      const response = await axios.post('/api/auth/launch-session', { accountId });
+      const response = await api.post('/api/auth/launch-session', { accountId });
       setMessage(response.data.message || 'Session launch result received.');
     } catch (error) {
       setMessage(error.response?.data?.message || 'Unable to launch the session.');

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 
 const providerNames = {
   gmail: 'Gmail',
@@ -34,7 +34,7 @@ export default function LoginPortal() {
 
     try {
       setLoading(true);
-      const response = await axios.post('/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         email,
         password,
         provider: normalizedProvider,
@@ -62,7 +62,7 @@ export default function LoginPortal() {
 
     try {
       setLoading(true);
-      const response = await axios.post('/api/auth/verify-2fa', {
+      const response = await api.post('/api/auth/verify-2fa', {
         accountId,
         code: twoFactorCode,
       });

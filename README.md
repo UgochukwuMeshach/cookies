@@ -85,21 +85,31 @@ behavior) — fine for local development, but you should set it in production.
 
 ## Vercel Deployment
 
-The repository root contains a `vercel.json` that configures:
+The frontend is deployed from the `client/` directory. The deployment
+configuration lives in `client/vercel.json` (Vercel only reads `vercel.json`
+from inside the configured Root Directory) and sets:
 
-- `rootDirectory`: `client`
+- `framework`: `vite`
 - `buildCommand`: `npm run build`
 - `outputDirectory`: `dist`
 - SPA rewrites so routes like `/login/gmail`, `/dashboard`, `/admin`, `/sessions`
   do not return 404 on refresh.
 
+> **Note:** `rootDirectory` is NOT a valid property of `vercel.json`. It is a
+> Project Setting that must be set in the Vercel dashboard (or via
+> `vercel --cwd`). Setting it in `vercel.json` causes the import to fail with
+> `Invalid request: should NOT have additional property 'rootDirectory'`.
+
 ### Vercel settings (dashboard)
 
-- **Framework Preset:** Vite
+- **Framework Preset:** Vite (auto-detected)
 - **Root Directory:** `client`
-- **Build Command:** `npm run build`
-- **Output Directory:** `dist`
+- **Build Command:** leave default (`npm run build`, also set in `client/vercel.json`)
+- **Output Directory:** leave default (`dist`)
+- **Install Command:** leave default (`npm install`)
 - **Environment Variables:** `VITE_API_URL=https://cookies-1-ex5p.onrender.com`
+
+The backend (`server/`) is never deployed to Vercel — it runs on Render.
 
 ## API Routes (preserved)
 

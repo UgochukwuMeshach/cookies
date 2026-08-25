@@ -60,15 +60,15 @@ async function startServer() {
       console.log('No MONGO_URI provided; running in memory-only mode for local development.');
     }
 
-    app.listen(PORT, () => {
-      console.log(`Express server is running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Express server is running on http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
     console.error('MongoDB connection failed:', error.message);
     console.log('Continuing in local memory mode so the app can still run.');
 
-    app.listen(PORT, () => {
-      console.log(`Express server is running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Express server is running on http://0.0.0.0:${PORT}`);
     });
   }
 }

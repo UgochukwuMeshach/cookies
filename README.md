@@ -14,7 +14,11 @@ React/Vite frontend (client/)
   ↓
 https://cookies-1-ex5p.onrender.com
   ↓
+Docker container on Render
+  ↓
 Express API (server/)
+  ↓
+Playwright + Chromium
   ↓
 MongoDB
 ```
@@ -62,26 +66,48 @@ A committed `client/.env.production` file is also provided as a fallback so the
 production build works even if the Vercel env var is not yet configured. The
 Vercel environment variable takes precedence.
 
-### Render (backend)
+### Render (backend) — Docker runtime
 
-Set the following environment variables in the Render dashboard
-(Environment tab on your existing backend service):
+The backend runs in a **Docker container** on Render so that Chromium and all
+its Linux dependencies are reliably available for Playwright. The Dockerfile
+lives at `server/Dockerfile` and is based on the official Playwright image
+`mcr.microsoft.com/playwright:v1.49.1-noble`, which matches the exact
+Playwright version installed by this project (`1.49.1`).
+
+**Render settings (dashboard):**
+
+- **Runtime:** Docker
+- **Root Directory:** `server` (Render builds from `server/Dockerfile`)
+- **Start Command:** leave empty — the Dockerfile's `CMD ["node", "index.js"]` runs the server
+- **Instance Type:** Free or any paid tier (Playwright needs CPU; a paid tier is recommended for reliability)
+
+The container:
+- installs production dependencies via `npm ci --omit=dev`
+- contains Chromium and all required Linux browser libraries (from the base image)
+- runs `node index.js`
+- binds to `0.0.0.0` and respects `process.env.PORT` (Render injects `PORT` automatically)
+
+**Environment variables (Render → Environment tab):**
 
 | Variable      | Required | Description                                                                 |
 | ------------- | -------- | --------------------------------------------------------------------------- |
 | `PORT`        | No       | Render injects this automatically. Defaults to `5000`.                      |
-| `MONGO_URI`   | Yes      | Your MongoDB connection string.                                             |
-| `CLIENT_URL`  | Yes*     | The deployed Vercel frontend URL, e.g. `https://your-app.vercel.app`.       |
+| `MONGO_URI`   | Yes      | Your MongoDB connection string (e.g. MongoDB Atlas). Never use `127.0.0.1`. |
+| `CLIENT_URL`  | Yes*     | The deployed Vercel frontend URL, e.g. `https://cookies-9xm7.vercel.app`.   |
 
 `CLIENT_URL` controls CORS. It accepts a single origin or a comma-separated
 list of origins, e.g.:
 
 ```
-CLIENT_URL=https://your-app.vercel.app,http://localhost:5173
+CLIENT_URL=https://cookies-9xm7.vercel.app,http://localhost:5173
 ```
 
 If `CLIENT_URL` is unset, CORS falls back to allowing all origins (the previous
 behavior) — fine for local development, but you should set it in production.
+
+> **Security:** Never put MongoDB credentials, session secrets, or API keys in
+> `VITE_*` variables (they are exposed to the browser). Keep them only in
+> Render's environment variables.
 
 ## Vercel Deployment
 

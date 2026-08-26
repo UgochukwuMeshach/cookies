@@ -31,10 +31,17 @@ The backend remains deployed on **Render** at `https://cookies-1-ex5p.onrender.c
 1. Install Node.js 18+.
 2. From the repo root, run:
    - `npm install`
-   - `npx playwright install --with-deps`
+   - `npx playwright install --with-deps` (local development only — **never** use this on Render)
 3. Start the app:
    - `npm run dev`
 4. Open the frontend at `http://localhost:5173` and the backend at `http://localhost:5000`.
+
+> **Important:** `npx playwright install --with-deps` is only for local machines where
+> you have `sudo`/root access. On Render, the Docker runtime already provides
+> Chromium and all required Linux dependencies via the base image
+> `mcr.microsoft.com/playwright:v1.49.1-noble`. Running this command in Render's
+> Build Command fails with `su: Authentication failure` because Render's native
+> containers do not grant root/sudo permissions.
 
 ### Local environment
 
@@ -74,12 +81,19 @@ lives at `server/Dockerfile` and is based on the official Playwright image
 `mcr.microsoft.com/playwright:v1.49.1-noble`, which matches the exact
 Playwright version installed by this project (`1.49.1`).
 
-**Render settings (dashboard):*
+**Render settings (dashboard):**
 
 - **Runtime:** Docker
 - **Root Directory:** `server` (Render builds from `server/Dockerfile`)
-- **Start Command:** leave empty — the Dockerfile's `CMD ["node", "index.js"]` runs the server
+- **Build Command:** leave **empty** — the Dockerfile runs `npm ci --omit=dev`
+- **Start Command:** leave **empty** — the Dockerfile's `CMD ["node", "index.js"]` runs the server
 - **Instance Type:** Free or any paid tier (Playwright needs CPU; a paid tier is recommended for reliability)
+
+> **Blueprint:** A `render.yaml` file at the repo root pins these settings
+> (runtime: docker, rootDir: server). If you use the Blueprint, Render will
+> automatically use the Docker runtime and ignore any legacy Node build command.
+> If you created the service manually, update the settings in the Render
+> dashboard as shown above.
 
 The container:
 - installs production dependencies via `npm ci --omit=dev`

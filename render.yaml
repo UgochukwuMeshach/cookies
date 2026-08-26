@@ -1,0 +1,24 @@
+# Render Blueprint — Backend (Express + Playwright)
+#
+# This pins the Render service to the Docker runtime so that Chromium and all
+# required Linux browser dependencies come from the official Playwright base
+# image (mcr.microsoft.com/playwright:v1.49.1-noble) instead of being installed
+# natively (which fails on Render's non-root containers).
+#
+# IMPORTANT: Do NOT set a Build Command or Start Command here. The Dockerfile
+# at server/Dockerfile handles both (npm ci --omit=dev + CMD ["node", "index.js"]).
+
+services:
+  - type: web
+    name: cookies-backend
+    runtime: docker
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false
+      - key: CLIENT_URL
+        sync: false

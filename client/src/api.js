@@ -12,7 +12,7 @@ import axios from 'axios';
  * The backend routes already include the /api prefix, so the env var
  * must NOT include a trailing /api.
  */
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'https://cookies-2-ucck.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,

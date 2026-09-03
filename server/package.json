@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "credential-session-manager-dashboard": "file:..",
     "dotenv": "^16.4.1",
     "express": "^4.19.2",
     "mongoose": "^8.8.4",

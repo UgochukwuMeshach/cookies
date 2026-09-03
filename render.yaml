@@ -1,12 +1,15 @@
 # Render Blueprint — Backend (Express + Playwright)
 #
-# This pins the Render service to the Docker runtime so that Chromium and all
-# required Linux browser dependencies come from the official Playwright base
-# image (mcr.microsoft.com/playwright:v1.49.1-noble) instead of being installed
-# natively (which fails on Render's non-root containers).
+# The Docker runtime is the SINGLE SOURCE OF TRUTH for this service:
+#   - dependency installation  -> npm ci --omit=dev (inside the Dockerfile)
+#   - Chromium + Linux deps    -> official Playwright base image (pinned to
+#                                 the exact Playwright npm version, 1.49.1)
+#   - application startup      -> CMD ["node", "index.js"] (inside the Dockerfile)
 #
-# IMPORTANT: Do NOT set a Build Command or Start Command here. The Dockerfile
-# at server/Dockerfile handles both (npm ci --omit=dev + CMD ["node", "index.js"]).
+# Do NOT set buildCommand or startCommand here — those would bypass the
+# Dockerfile and reintroduce the missing-Chromium failure. After deploying,
+# confirm the Render logs show a Docker build (e.g. "Building image from
+# Dockerfile"), not native "npm ci" + "node index.js" build steps.
 
 services:
   - type: web
@@ -15,10 +18,18 @@ services:
     rootDir: server
     dockerfilePath: ./Dockerfile
     plan: free
+    healthCheckPath: /api/health
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: PORT
         value: 5000
+      # Secret — set in the Render dashboard (Environment tab).
+      # Value: the MongoDB Atlas connection string for Cluster0, e.g.
+      # mongodb+srv://USERNAME:PASSWORD@cluster0.xxxxx.mongodb.net/credential_dashboard?retryWrites=true&w=majority
+      # Never commit the real value; never use 127.0.0.1 in production.
       - key: MONGO_URI
         sync: false
+      # Set in the Render dashboard to the deployed Vercel frontend URL.
       - key: CLIENT_URL
         sync: false

@@ -103,11 +103,35 @@ The container:
 
 **Environment variables (Render → Environment tab):**
 
-| Variable      | Required | Description                                                                 |
-| ------------- | -------- | --------------------------------------------------------------------------- |
-| `PORT`        | No       | Render injects this automatically. Defaults to `5000`.                      |
-| `MONGO_URI`   | Yes      | Your MongoDB connection string (e.g. MongoDB Atlas). Never use `127.0.0.1`. |
-| `CLIENT_URL`  | Yes*     | The deployed Vercel frontend URL, e.g. `https://cookies-9xm7.vercel.app`.   |
+| Variable      | Required | Description                                                                     |
+| ------------- | -------- | ------------------------------------------------------------------------------- |
+| `PORT`        | No       | Render injects this automatically. Defaults to `5000`.                          |
+| `NODE_ENV`    | Yes      | Set to `production` (pinned in `render.yaml`). Enables fail-fast DB behavior.   |
+| `MONGO_URI`   | Yes      | Your MongoDB **Atlas** connection string. Never use `127.0.0.1`.                |
+| `CLIENT_URL`  | Yes*     | The deployed Vercel frontend URL, e.g. `https://cookies-9xm7.vercel.app`.       |
+
+### MongoDB Atlas configuration
+
+1. **Connection string:** In Atlas, open **Cluster0 → Connect → Drivers (Node.js)**
+   and copy the `mongodb+srv://...` URI. Append your application database name
+   (this project uses `credential_dashboard`) and store the full URI as the
+   `MONGO_URI` **secret environment variable** in Render. URL-encode the
+   password if it contains special characters. Never commit the URI to Git,
+   the frontend, or documentation.
+2. **Network Access (IP Access List):** Atlas only accepts connections from
+   allow-listed IPs. Find your Render service's **outbound IP addresses**
+   (Render Dashboard → your service → **Networking** → *Outbound IP addresses*;
+   see https://render.com/docs/outbound-ip) and add each one in
+   **Atlas → Network Access → Add IP Address**. Do **not** use `0.0.0.0/0`.
+3. **Verification:** After deploying, `GET /api/health/db` on the Render URL
+   must return `{"ok":true,"database":"healthy",...}` (a real Atlas ping).
+
+### Fail-fast behavior (production)
+
+With `NODE_ENV=production`, the backend **exits (code 1)** if `MONGO_URI` is
+missing or the Atlas connection fails — it will never silently run in
+in-memory mode in production. Local development keeps the memory-only
+fallback. Error logs never print the URI or credentials.
 
 `CLIENT_URL` controls CORS. It accepts a single origin or a comma-separated
 list of origins, e.g.:
@@ -155,13 +179,15 @@ The backend (`server/`) is never deployed to Vercel — it runs on Render.
 
 The backend exposes the following routes (unchanged):
 
-| Method | Path                          | Description                          |
-| ------ | ----------------------------- | ------------------------------------ |
-| GET    | `/api/health`                 | Health check                         |
-| GET    | `/api/auth/credentials`       | List saved credentials               |
-| POST   | `/api/auth/login`             | Login with provider                  |
-| POST   | `/api/auth/verify-2fa`        | Submit 2FA code                      |
-| POST   | `/api/auth/launch-session`    | Launch cookie-based browser session  |
+| Method | Path                          | Description                                           |
+| ------ | ----------------------------- | ----------------------------------------------------- |
+| GET    | `/api/health`                 | Basic liveness check (used as Render healthCheckPath) |
+| GET    | `/api/health/db`              | MongoDB health: URI set, connection state, Atlas ping |
+| GET    | `/api/health/playwright`      | Chromium launch test: launch → page → close (timed)   |
+| GET    | `/api/auth/credentials`       | List saved credentials                                |
+| POST   | `/api/auth/login`             | Login with provider                                   |
+| POST   | `/api/auth/verify-2fa`        | Submit 2FA code                                       |
+| POST   | `/api/auth/launch-session`    | Launch cookie-based browser session                   |
 
 ## Notes
 
